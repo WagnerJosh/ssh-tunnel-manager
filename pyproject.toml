@@ -1,20 +1,63 @@
-[tool.poetry]
-name = "ssh-tunnel-manager"
+[project]
+name = "tunnels"
 version = "0.1.0"
-description = "A simple ssh tunnel manager"
-authors = ["Joshua Wagner <joshuawagner96@gmail.com>"]
-license = "GPLv3"
+description = "A simple SSH Tunnel Manager tool"
 readme = "README.md"
+authors = [
+    { name = "Joshua Wagner", email = "none@none.none" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "psutil>=7.0.0",
+    "pydantic>=2.10.2",
+    "pydantic-settings>=2.6.1",
+    "rich>=13.9.4",
+    "typer>=0.14.0",
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-rich = "^13.7.1"
-typer = "^0.12.3"
-
-[tool.poetry.group.dev.dependencies]
-ruff = "^0.4.4"
-poetry = "^1.8.3"
+[project.scripts]
+tunnels = "tunnels:main"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "ruff>=0.9.10",
+]
+
+
+[tool.pylint.messages_control]
+max-line-length = 88
+disable = [
+    "wrong-import-position",
+    "wrong-import-order",
+    "too-many-locals",
+    "too-many-instance-attributes",
+    "too-many-arguments",
+    "missing-function-docstring",
+    "invalid-name",
+]
+ 
+[tool.ruff]
+fix = true
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["ANN401","CPY001","D105","D203","D213", "D406","D407", "D413","PLR0917"]
+# IGNORE DOCUMENTATION:
+#   IGNORE: any-type                        (ANN401)
+#   IGNORE: one-blank-line-before-class     (D203) USING: no-blank-line-before-class    (D211) 
+#   IGNORE: multi-line-summary-second-line  (D213) USING: multi-line-summary-first-line (D212)
+#   IGNORE: new-line-after-section-name     (D406)
+#   IGNORE: dashed-underline-after-section  (D407)
+#   IGNORE: blank-line-after-last-section   (D413)
+#   IGNORE: too-many-positional-arguments   (PLR0917)
+#   IGNORE: Missing docstring in magic method (D105)
+task-tags = ["TODO", "FIXME", "FIX","HACK"]
+isort.required-imports = ["from __future__ import annotations"]
+
+[tool.ruff.format]
+docstring-code-format = true
