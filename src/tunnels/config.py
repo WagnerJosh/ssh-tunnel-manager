@@ -187,13 +187,18 @@ class Local(BaseModel, frozen=True):
 class Tunnel(BaseModel):
     """A tunnel configuration."""
 
-    name: str = Field(description="The name of the tunnel")
+    name: str
     group: str | None = Field(default=None, description="The group of the tunnel")
     hostname: str = Field(..., description="The hostname of the tunnel")
     dynamic: Dynamic | None = Field(default=None)
     local: Local | None = Field(default=None)
 
     def name_tag(self) -> str:
+        """Return a constructed name tag for the tunnel.
+
+        Returns:
+            str: The name tag for the tunnel.
+        """
         return self.name.replace(" ", "-").casefold().lower()
 
 
@@ -202,7 +207,8 @@ class TunnelGroup(BaseModel):
 
     name: str = Field(..., description="The name of the group")
     tunnels: list[Tunnel] = Field(
-        default_factory=list, description="The tunnels in the group"
+        default_factory=list,
+        description="The tunnels in the group",
     )
 
 
