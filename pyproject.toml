@@ -3,9 +3,7 @@ name = "tunnels"
 version = "0.2.0"
 description = "A simple SSH Tunnel Manager tool"
 readme = "README.md"
-authors = [
-    { name = "Joshua Wagner", email = "none@none.none" }
-]
+authors = [{ name = "Joshua Wagner", email = "none@none.none" }]
 requires-python = ">=3.12"
 dependencies = [
     "psutil>=7.0.0",
@@ -25,10 +23,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-dev = [
-    "pytest>=8.3.5",
-    "ruff>=0.9.10",
-]
+dev = ["pytest>=8.3.5", "ruff>=0.9.10"]
 
 
 [tool.pylint.messages_control]
@@ -42,24 +37,63 @@ disable = [
     "missing-function-docstring",
     "invalid-name",
 ]
- 
+
 [tool.ruff]
 fix = true
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["ANN401","CPY001","D105","D203","D213", "D406","D407", "D413","PLR0917"]
+ignore = [
+    "ANN401",
+    "CPY001",
+    "D105",
+    "D203",
+    "D213",
+    "D406",
+    "D407",
+    "D413",
+    "PLR0917",
+]
 # IGNORE DOCUMENTATION:
 #   IGNORE: any-type                        (ANN401)
-#   IGNORE: one-blank-line-before-class     (D203) USING: no-blank-line-before-class    (D211) 
+#   IGNORE: one-blank-line-before-class     (D203) USING: no-blank-line-before-class    (D211)
 #   IGNORE: multi-line-summary-second-line  (D213) USING: multi-line-summary-first-line (D212)
 #   IGNORE: new-line-after-section-name     (D406)
 #   IGNORE: dashed-underline-after-section  (D407)
 #   IGNORE: blank-line-after-last-section   (D413)
 #   IGNORE: too-many-positional-arguments   (PLR0917)
 #   IGNORE: Missing docstring in magic method (D105)
-task-tags = ["TODO", "FIXME", "FIX","HACK"]
+task-tags = ["TODO", "FIXME", "FIX", "HACK"]
 isort.required-imports = ["from __future__ import annotations"]
+
+[tool.ruff.lint.per-file-ignores]
+# Test files should allow pytest patterns and testing conventions
+"tests/**/*.py" = [
+    "S101",    # Use of assert detected (required for pytest)
+    "ANN201",  # Missing return type annotation for public function (not needed in tests)
+    "ANN001",  # Missing type annotation for function argument (fixtures don't need types)
+    "PLR2004", # Magic value used in comparison (test data often uses magic values)
+    "SIM300",  # Yoda condition detected (assert patterns in tests)
+]
+# Test runner script should allow prints and subprocess calls
+"run_tests.py" = [
+    "T201",   # Print found (CLI script needs print statements)
+    "S603",   # subprocess call: check for execution of untrusted input (intentional for test runner)
+    "EXE001", # Shebang is present but file is not executable (dev script)
+    "D401",   # First line of docstring should be in imperative mood (not critical for scripts)
+]
 
 [tool.ruff.format]
 docstring-code-format = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]

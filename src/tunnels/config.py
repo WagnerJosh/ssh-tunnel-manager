@@ -7,11 +7,11 @@ import os
 import pathlib
 from functools import cached_property
 from pathlib import Path
-from typing import Literal, Self
+from typing import Any, NamedTuple, Self
 
 import yaml
 from dotenv import load_dotenv
-from pydantic import AliasChoices, BaseModel, Field, FilePath, model_validator
+from pydantic import BaseModel, Field, FilePath, model_validator
 from pydantic.v1.utils import deep_update
 from pydantic_settings import BaseSettings
 
@@ -219,8 +219,19 @@ class Config(ConfigFileLoader):
     groups: list[TunnelGroup] | None = Field(default_factory=list)
 
 
-if __name__ == "__main__":
-    from rich import print as rprint
+class Settings(NamedTuple):
+    """The application settings."""
 
-    settings = Config.load()
-    rprint(settings)
+    configuration: Config
+    global_options: dict[str, Any]
+
+
+settings: Settings = Settings(
+    configuration=Config.load(),
+    global_options={"output": None},
+)
+
+if __name__ == "__main__":
+    import rich
+
+    rich.print(settings)
