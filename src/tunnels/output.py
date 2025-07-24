@@ -65,9 +65,9 @@ def _create_table(data: list[BaseModel], title: str | None = None) -> Table:
         expand=True,
     )
 
-    model = [entry.model_dump(mode="json") for entry in data]
+    model: list[dict[str, Any]] = [entry.model_dump(mode="json") for entry in data]
 
-    for header in all_keys:
+    for header in model:
         column_title = header.replace("_", " ").title()
         style, justify = _get_column_style(header)
         table.add_column(column_title, style=style, justify=justify)
