@@ -54,7 +54,7 @@ def _version_callback(*, value: bool) -> None:
     raise typer.Exit
 
 
-_default_cmd: str | None = shutil.which("ssh") or "ssh"
+_default_cmd: str | None = "ssh"
 
 
 def create_tunnel_cmd(
@@ -284,9 +284,9 @@ def _list_process_connections(
     connections = [
         f"{conn.laddr.ip}:{conn.laddr.port}" for conn in all_connections if conn.laddr
     ]
-    connections.extend([
-        f"{conn.raddr.ip}:{conn.raddr.port}" for conn in all_connections if conn.raddr
-    ])
+    connections.extend(
+        [f"{conn.raddr.ip}:{conn.raddr.port}" for conn in all_connections if conn.raddr]
+    )
     connections.sort()
     return connections
 
@@ -439,13 +439,15 @@ def generate_table_dict() -> list[dict[str, str]]:
                 break
         else:
             status = "[red]Inactive"
-        res.append({
-            "name": name,
-            "type": type,
-            "pid": pid,
-            "status": status,
-            "connections": connections,
-        })
+        res.append(
+            {
+                "name": name,
+                "type": type,
+                "pid": pid,
+                "status": status,
+                "connections": connections,
+            }
+        )
     return res
 
 
