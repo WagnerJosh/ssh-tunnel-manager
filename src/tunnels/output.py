@@ -69,7 +69,7 @@ def _get_column_style(header: str) -> tuple[str, JustifyMethod]:
     """
     if header in {"local_port", "remote_port"}:
         header = "port"
-    default: tuple[str, JustifyMethod] = ("cyan", "left")
+    default: tuple[str, JustifyMethod] = ("dim", "left")
     styles: dict[str, tuple[str, JustifyMethod]] = {
         "status": ("bold", "center"),
         "port": ("yellow", "right"),
@@ -88,9 +88,9 @@ def _format_status_value(value: str) -> str:
         str: A formatted string with color styling based on the status value.
     """
     formats: dict[str, str] = {
-        "active": "[bold green]Active[/]",
+        "running": "[bold green]Running[/]",
         "inactive": "[bold red]Inactive[/]",
-        "connecting": "[bold yellow]Connecting[/]",
+        "connecting": "[bold dim]Connecting[/]",
     }
     return formats.get(value.lower(), f"[dim]{value}[/]")
 
@@ -160,7 +160,7 @@ def _create_table(
     for row in model:
         row_values = []
         for key in header_keys:
-            v = str(row.get(key, "-"))
+            v = str(row.get(key, ""))
             row_values.append(v if key != "status" else _format_status_value(v))
         table_.add_row(*row_values)
     return table_
