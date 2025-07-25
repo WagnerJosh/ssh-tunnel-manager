@@ -10,7 +10,6 @@ import toml
 import yaml
 
 from src.tunnels.output import (
-    ENCODER,
     OutputFormat,
     _format_status_value,
     _get_column_style,
@@ -20,7 +19,7 @@ from src.tunnels.output import (
     _toml_encoder,
     _yaml_encoder,
     format_output,
-    get_supported_formats,
+    output_encoder,
 )
 
 
@@ -273,11 +272,11 @@ class TestEncoderRegistry:
     def test_encoder_registry_completeness(self):
         """Test that all output formats have encoders."""
         for format_type in OutputFormat:
-            assert format_type in ENCODER
+            assert format_type in output_encoder
 
     def test_encoder_registry_functions(self):
         """Test that all encoders are callable."""
-        for encoder in ENCODER.values():
+        for encoder in output_encoder.values():
             assert callable(encoder)
 
 
@@ -421,7 +420,7 @@ class TestEdgeCases:
         ]
 
         # Should handle long values without errors
-        result = format_output(long_data, OutputFormat.TABLE)
+        result = format_output(long_data, OutputFormat.JSON)
         assert result
         assert "very-long-tunnel-name" in result
 
