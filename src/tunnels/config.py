@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import importlib.metadata
 import logging
 import os
 import pathlib
+import sys
 from functools import cached_property
 from pathlib import Path
-from typing import Any, NamedTuple, Self
+from typing import Any, Final, NamedTuple, Self
 
+import toml
 import yaml
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, FilePath, model_validator
@@ -20,6 +23,40 @@ log = logging.getLogger(__name__)
 XDG_CONFIG_HOME: Path = Path(
     os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config",
 )
+
+PROJECT_PATH: pathlib.Path = pathlib.Path(__file__).parent.parent
+"""
+The Base path of the application, i.e.: Where the main module is located.
+"""
+
+BASE_PATH: pathlib.Path = pathlib.Path(__file__).parent.parent.parent.parent
+"""
+The base path of the application, i.e.: Where the application is meant to be run
+from and all the files are based relative to
+"""
+
+_pyproject_toml: pathlib.Path = BASE_PATH / "pyproject.toml"
+_name = pathlib.Path(sys.argv[0]).stem
+try:
+    if _pyproject_toml.exists():
+        _data = toml.loads(_pyproject_toml.read_text())
+        _name: str = _data.get("project", {}).get("name")
+except toml.TomlDecodeError:
+    _name = pathlib.Path(sys.argv[0]).stem
+PACKAGE_NAME: Final[str] = _name
+"""
+The name of the package, as defined in the pyproject.toml file.
+"""
+
+try:
+    _version = importlib.metadata.version(PACKAGE_NAME)
+except importlib.metadata.PackageNotFoundError:
+    _version = "0.0.0"
+
+VERSION: Final[str] = _version
+"""
+The vesion of the package, as defined in the pyproject.toml file or "0.0.0".
+"""
 
 
 class ConfigFileLoader(BaseSettings):
