@@ -22,8 +22,7 @@ def _version_callback(*, value: bool) -> None:
         return
     typer.echo(f"{meta['name'].lower()} {meta['version']}")
     raise typer.Exit
-
-
+   
 @app.callback()
 def main_callback(
     *,
