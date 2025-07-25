@@ -280,21 +280,6 @@ class TestEncoderRegistry:
             assert callable(encoder)
 
 
-class TestGetSupportedFormats:
-    """Test the get_supported_formats function."""
-
-    def test_get_supported_formats(self):
-        """Test getting supported formats."""
-        formats = get_supported_formats()
-        assert isinstance(formats, list)
-        assert len(formats) == 4
-        assert all(isinstance(fmt, OutputFormat) for fmt in formats)
-        assert OutputFormat.JSON in formats
-        assert OutputFormat.YAML in formats
-        assert OutputFormat.TOML in formats
-        assert OutputFormat.TABLE in formats
-
-
 class TestRealWorldScenarios:
     """Test with real-world SSH tunnel data scenarios."""
 

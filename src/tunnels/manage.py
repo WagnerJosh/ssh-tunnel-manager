@@ -35,28 +35,20 @@ def get_autossh_command() -> str | None:
     """Get the autossh command if available."""
     if sys.platform == "win32":
         return shutil.which("autossh.exe") or shutil.which("autossh")
-    else:
-        return shutil.which("autossh")
+    return shutil.which("autossh")
 
 
 def create_tunnel_cmd(
     tunnel: Tunnel,
     *,
-    name_tag: bool = True,
     use_autossh: bool = True,
 ) -> list[str]:
     """Create the command to start a tunnel with automatic reconnection support."""
-    autossh_cmd = get_autossh_command() if use_autossh else None
-
-    if autossh_cmd:
-        # Use autossh for automatic reconnection
+    if autossh_cmd := get_autossh_command() if use_autossh else None:
         base_cmd = [autossh_cmd, "-M", "0", "-f", "-N", "-n"]
     else:
-        # Fall back to regular SSH
-        ssh_cmd = get_ssh_command()
-        base_cmd = [ssh_cmd, "-f", "-N", "-n"]
+        base_cmd = [get_ssh_command(), "-f", "-N", "-n"]
 
-    # Add tunnel configuration
     if tunnel.dynamic:
         base_cmd.extend(["-D", tunnel.dynamic.address])
     elif tunnel.local:
@@ -242,13 +234,9 @@ def start(
     if use_autossh and not get_autossh_command():
         console.print("[yellow]AutoSSH not found, using regular SSH[/yellow]")
         use_autossh = False
-    # started = [int(start_tunnel(tunnel, use_autossh=use_autossh)) for tunnel in tunnels]
-    success_count = 0
-    for tunnel in tunnels:
-        if start_tunnel(tunnel, use_autossh=use_autossh):
-            success_count += 1
+    started = [int(start_tunnel(tunnel, use_autossh=use_autossh)) for tunnel in tunnels]
     total = len(tunnels)
-    # success_count = sum(started)
+    success_count = sum(started)
     if success_count == total:
         console.print(f"[green]Successfully started {success_count} tunnel(s)[/green]")
     elif success_count > 0:
