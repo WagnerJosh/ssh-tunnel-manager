@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -57,7 +58,8 @@ def create_tunnel_cmd(
         [
             tunnel.hostname,
             "-o",
-            f"Tag=tunnels-{tunnel.name_tag()}-o",
+            f"Tag=tunnels-{tunnel.name_tag()}",
+            "-o",
             "ServerAliveInterval=60",
             "-o",
             "ServerAliveCountMax=3",
@@ -135,7 +137,10 @@ def start_tunnel(tunnel: Tunnel, *, use_autossh: bool = True) -> bool:
 
     try:
         cmd = create_tunnel_cmd(tunnel, use_autossh=use_autossh)
-        subprocess.Popen(cmd)  # noqa: S603
+        env = os.environ.copy()
+        if use_autossh and get_autossh_command():
+            env["AUTOSSH_MAXSTART"] = "3"
+        subprocess.Popen(cmd, env=env)  # noqa: S603
 
         connection_type = "autossh" if use_autossh and get_autossh_command() else "ssh"
         console.print(
