@@ -33,7 +33,35 @@ def list_ssh_processes() -> Generator[psutil.Process]:
         psutil.Process: An SSH process instances.
     """
     with contextlib.suppress(psutil.AccessDenied, psutil.NoSuchProcess):
-        yield from (p for p in psutil.process_iter() if p.name() == "ssh")
+        yield from (
+            p
+            for p in psutil.process_iter()
+            if p.name() in ("ssh", "ssh.exe", "autossh", "autossh.exe")
+        )
+
+
+def _extract_connections_from_process(
+    proc: psutil.Process,
+    kind: ConnectionKind = "inet4",
+) -> set[str]:
+    """Extract network connections from a single process.
+
+    Args:
+        proc: The process to get connections from.
+        kind: The type of connections to filter (inet4, tcp, udp, etc.).
+
+    Returns:
+        set[str]: A set of connections in the format "ip_address:port".
+    """
+    connections = set()
+    with contextlib.suppress(psutil.AccessDenied, psutil.NoSuchProcess):
+        network_connections = proc.net_connections(kind=kind)
+        for conn in network_connections:
+            if conn.laddr:
+                connections.add(f"{conn.laddr.ip}:{conn.laddr.port}")
+            if conn.raddr:
+                connections.add(f"{conn.raddr.ip}:{conn.raddr.port}")
+    return connections
 
 
 def list_process_socket_connections(
@@ -50,14 +78,9 @@ def list_process_socket_connections(
     Returns:
         list[str]: A sorted list of connections, in the format of "ip_address":"port".
     """
+    connections = _extract_connections_from_process(proc, kind)
     with contextlib.suppress(psutil.AccessDenied, psutil.NoSuchProcess):
-        network_connections = proc.net_connections(kind=kind)
-        connections = set()
+        for child in proc.children(recursive=True):
+            connections.update(_extract_connections_from_process(child, kind))
 
-        for conn in network_connections:
-            if conn.laddr:
-                connections.add(f"{conn.laddr.ip}:{conn.laddr.port}")
-            if conn.raddr:
-                connections.add(f"{conn.raddr.ip}:{conn.raddr.port}")
-        return sorted(connections)
-    return []
+    return sorted(connections)

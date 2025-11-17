@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, Sequence
 
 import rich.box
 import toml
@@ -20,10 +20,11 @@ if TYPE_CHECKING:
 type JustifyMethod = Literal["default", "left", "center", "right", "full"]
 """A type alias for justification methods used in rich tables."""
 
-type EncoderData = list[BaseModel] | list[dict[str, Any]]
+type EncoderData = Sequence[type[BaseModel]] | list[dict[str, Any]]
+
 """A type alias for the data that can be encoded by the encoder."""
 
-type Encoder = Callable[[EncoderData, list[str] | None], RenderableType]
+type Encoder = Callable[[EncoderData, Sequence[str] | None], RenderableType]
 """A type alias for the encoder function that takes data and optional columns."""
 
 
@@ -71,9 +72,12 @@ def _get_column_style(header: str) -> tuple[str, JustifyMethod]:
         header = "port"
     default: tuple[str, JustifyMethod] = ("dim", "left")
     styles: dict[str, tuple[str, JustifyMethod]] = {
-        "status": ("bold", "center"),
+        "status": ("bold", "left"),
         "port": ("yellow", "right"),
         "name": ("green", "left"),
+        "proxy": ("cyan", "center"),
+        "item": ("cyan", "left"),
+        "details": ("dim", "left"),
     }
     return styles.get(header, default)
 
@@ -98,21 +102,21 @@ def _format_status_value(value: str) -> str:
 def _standardize_data(
     input_data: EncoderData,
     /,
-    columns: list[str] | None = None,
+    columns: Sequence[str] | None = None,
 ) -> list[dict[str, Any]]:
-    """Standardize the input data to a list of dictionaries.
+    """Standardize the input data to a list of dictionaries or dict.
 
     Args:
-        input_data: List of dictionaries or Pydantic models to standardize
+        input_data: List of dictionaries, Pydantic models, or dict to standardize
         columns: Optional list of column names to include in the output
 
     Returns:
-        list[dict[str, Any]]: A standardized list of dictionaries with the
-            specified columns.
+        list[dict[str, Any]] | dict[str, Any]: A standardized list of dictionaries
+            or dict with the specified columns.
     """
     model: list[dict[str, Any]] = []
     for entry in input_data:
-        data = {}
+        data: dict[str, Any] = {}
         if isinstance(entry, BaseModel):
             data = entry.model_dump(mode="json", by_alias=True)
         else:
@@ -126,11 +130,11 @@ def _standardize_data(
 
 def _create_table(
     data: EncoderData,
-    columns: list[str] | None = None,
+    columns: Sequence[str] | None = None,
     *,
     title: str | None = None,
     table_: Table = default_table,
-) -> Table:
+) -> RenderableType:
     """Create a rich table with proper styling.
 
     Args:
@@ -147,7 +151,11 @@ def _create_table(
     if title:
         table_.title = title
 
-    model: list[dict[str, Any]] = _standardize_data(data, columns=columns)
+    model: list[dict[str, Any]] = _standardize_data(
+        data,
+        columns=columns,
+    )
+
     if not model or not model[0]:
         return table_
     header_keys: list[str] = []
@@ -171,7 +179,7 @@ def _table_encoder(
     columns: list[str] | None = None,
     *,
     table_: Table = default_table,
-) -> Table:
+) -> RenderableType:
     """Encode the data as a rich table format with status-based styling.
 
     Args:
@@ -185,19 +193,41 @@ def _table_encoder(
     return _create_table(data, table_=table_, columns=columns)
 
 
-def _panel_encoder(data: EncoderData, columns: list[str] | None = None) -> Panel:
+def _panel_encoder(
+    data: EncoderData,
+    columns: Sequence[str] | None = None,
+    title: str | None = None,
+) -> RenderableType:
     """Encode the data as a rich table format with status-based styling.
 
     Args:
         data: List of dictionaries containing the data to format
         columns: Optional list of column names to include in the output
+        title: Optional title override for the panel
 
     Returns:
         Panel: A rich Panel object containing the formatted table
     """
+    panel_title = f"[bold]{title}" if title else "[bold]Active Tunnels"
+
+    # Add color based on VPN status if present
+    if title:
+        if "NOT SET" in title:
+            panel_title = f"[bold yellow]{title}"
+        elif "Cisco" in title and "Enabled" in title:
+            panel_title = f"[bold green]{title}"
+        elif "unusual" in title.lower():
+            panel_title = f"[bold yellow]{title}"
+        elif "Ivanti" in title or "Lab" in title:
+            panel_title = f"[bold cyan]{title}"
+        elif "Disconnected" in title and "Proxy: Set" in title:
+            panel_title = f"[bold yellow]{title}"
+        elif "Disconnected" in title:
+            panel_title = f"[bold red]{title}"
+
     return Panel(
         _create_table(data, table_=borderless_table, columns=columns),
-        title="[bold]Active Tunnels",
+        title=panel_title,
         title_align="left",
         border_style="dim",
     )
@@ -207,27 +237,29 @@ def _json_encoder(data: EncoderData, columns: list[str] | None = None) -> str:
     """Encode the data as formatted JSON.
 
     Args:
-        data: List of dictionaries containing the data to format
+        data: List of dictionaries or dict containing the data to format
         columns: Optional list of column names to include in the output
 
     Returns:
         str: A string representation of the data in JSON format.
     """
-    return json.dumps(_standardize_data(data, columns=columns), indent=2)
+    standardized = _standardize_data(data, columns=columns)
+    return json.dumps(standardized, indent=2)
 
 
 def _yaml_encoder(data: EncoderData, columns: list[str] | None = None) -> str:
     """Encode the data as YAML.
 
     Args:
-        data: List of dictionaries containing the data to format
+        data: List of dictionaries or dict containing the data to format
         columns: Optional list of column names to include in the output
 
     Returns:
         str: A string representation of the data in YAML format.
     """
+    standardized = _standardize_data(data, columns=columns)
     return yaml.safe_dump(
-        _standardize_data(data, columns=columns),
+        standardized,
         default_flow_style=False,
         sort_keys=False,
     )
@@ -241,20 +273,21 @@ def _toml_encoder(
     """Encode the data as TOML.
 
     Args:
-        data: List of dictionaries containing the data to format
+        data: List of dictionaries or dict containing the data to format
         columns: Optional list of column names to include in the output
         key: The key under which the data will be stored in the TOML output.
-            Defaults to "Tunnel"
+            Defaults to "Tunnel" (ignored if data is already a dict)
 
     Returns:
         str: A string representation of the data in TOML format.
     """
-    return toml.dumps({key: _standardize_data(data, columns=columns)})
+    standardized = _standardize_data(data, columns=columns)
+    return toml.dumps({key: standardized})
 
 
 def _table_encoder_with_title(
     data: EncoderData,
-    columns: list[str] | None = None,
+    columns: Sequence[str] | None = None,
     title: str | None = None,
 ) -> RenderableType:
     """Encode the data as a rich table format with optional title.
@@ -283,7 +316,7 @@ output_encoder: dict[OutputFormat, Encoder] = {
 def format_output(
     data: EncoderData,
     format_: OutputFormat,
-    columns: list[str] | None = None,
+    columns: Sequence[str] | None = None,
     title: str | None = None,
 ) -> RenderableType:
     """Format the output data according to the specified format.
@@ -292,7 +325,7 @@ def format_output(
         data: List of dictionaries containing the data to format
         format_: The desired output format
         columns: Optional list of column names to include in the output
-        title: Optional title for table format (ignored for other formats)
+        title: Optional title for table/panel formats
 
     Returns:
         Formatted string representation of the data
@@ -307,6 +340,10 @@ def format_output(
     # Use custom table encoder with title if format is TABLE and title is provided
     if format_ == OutputFormat.TABLE and title is not None:
         return _table_encoder_with_title(data, columns=columns, title=title)
+
+    # Use panel encoder with title if format is PANEL and title is provided
+    if format_ == OutputFormat.PANEL and title is not None:
+        return _panel_encoder(data, columns=columns, title=title)
 
     encoder: Encoder = output_encoder[format_]
     return encoder(data, columns)
